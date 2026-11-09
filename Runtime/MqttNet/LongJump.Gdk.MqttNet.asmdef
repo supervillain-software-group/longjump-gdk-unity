@@ -1,0 +1,25 @@
+{
+    "name": "LongJump.Gdk.MqttNet",
+    "rootNamespace": "LongJump",
+    "references": [
+        "LongJump.Gdk",
+        "MQTTnet"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "LONGJUMP_MQTTNET"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.github.asus4.mqtt-unity",
+            "expression": "0.0.0",
+            "define": "LONGJUMP_MQTTNET"
+        }
+    ],
+    "noEngineReferences": false
+}

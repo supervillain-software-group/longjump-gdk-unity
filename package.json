@@ -1,0 +1,10 @@
+{
+  "name": "com.longjump.gdk",
+  "displayName": "LongJump GDK",
+  "version": "0.7.1",
+  "unity": "2022.3",
+  "description": "Client for the LongJump Game Dev Kit: Steam sign-in that renews itself, real-time player events, leaderboards, cloud saves, issue reporting (bug reports, errors and crashes), and the generated API client for every LongJump endpoint.",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  }
+}

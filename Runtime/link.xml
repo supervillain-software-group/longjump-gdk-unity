@@ -1,0 +1,7 @@
+<!-- IL2CPP code stripping: Newtonsoft.Json fills the generated models (Runtime/Generated) by reflection,
+     so no code calls their setters or constructors, and stripping at Low or higher removes them. Unity
+     2022.3 reads link.xml files only from a project's Assets folder, so this file does nothing where it
+     is: a game that raises Managed Stripping Level above Minimal copies it into Assets. -->
+<linker>
+  <assembly fullname="LongJump.Gdk" preserve="all" />
+</linker>
