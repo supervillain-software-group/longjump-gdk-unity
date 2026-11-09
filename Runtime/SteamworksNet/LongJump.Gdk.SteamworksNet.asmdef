@@ -1,0 +1,31 @@
+{
+    "name": "LongJump.Gdk.SteamworksNet",
+    "rootNamespace": "LongJump",
+    "references": [
+        "LongJump.Gdk",
+        "com.rlabrecque.steamworks.net"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "LinuxStandalone64",
+        "macOSStandalone",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "LONGJUMP_STEAMWORKS_NET"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.rlabrecque.steamworks.net",
+            "expression": "20.2.0",
+            "define": "LONGJUMP_STEAMWORKS_NET"
+        }
+    ],
+    "noEngineReferences": false
+}

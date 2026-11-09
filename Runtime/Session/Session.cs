@@ -11,9 +11,9 @@ namespace LongJump
     /// account (a kiosk), the token every request sends, and renewing it.
     /// </summary>
     /// <remarks>
-    /// Tokens last two days. Steam sign-in takes a ticket provider, a function that gets a fresh Steam
-    /// ticket, and the GDK signs in again on its own shortly before the token expires, or when the server
-    /// refuses it. A device session renews itself the same way and stays the same device. When the GDK
+    /// Tokens last two days. Steam sign-in gets fresh Steam tickets through the game's Steam library
+    /// (Steamworks.NET or Facepunch.Steamworks), or through a ticket provider the game passes, and the GDK
+    /// signs in again on its own shortly before the token expires, or when the server refuses it. A device session renews itself the same way and stays the same device. When the GDK
     /// can't renew, it raises <see cref="Expired"/>.
     /// </remarks>
     public static class Session
@@ -26,6 +26,8 @@ namespace LongJump
             new IssueSettings(IssueSettings.ScreenshotModeEnum.Off, storePlayer: true);
 
         static Func<Task<SteamTicket>> ticketProvider;
+        static string steamLibrary;
+        static Func<string, Task<SteamTicket>> steamLibraryTickets;
         static DeviceSession device;
         static string deviceLabel;
         static Task<bool> renewal;
@@ -71,6 +73,37 @@ namespace LongJump
         public static event Action Expired;
 
         internal static string Token => Current?.AccessToken?.Token ?? device?.AccessToken?.Token;
+
+        /// <summary>
+        /// Signs in with the game's Steam library, and signs in again with a fresh ticket whenever the
+        /// session needs renewing. Works when the game has Steamworks.NET or Facepunch.Steamworks (the
+        /// GDK turns on its support for them in the editor); with any other Steam library, pass a ticket
+        /// provider instead.
+        /// </summary>
+        /// <param name="identity">The identity the tickets are for, 5 to 30 characters.</param>
+        /// <returns>The signed-in player.</returns>
+        /// <exception cref="InvalidOperationException">The GDK has no support for the game's Steam library, or Steam isn't running.</exception>
+        /// <exception cref="ApiException">The server refused the sign-in; see its ErrorCode and ErrorContent.</exception>
+        public static async Task<Player> SignInWithSteamAsync(string identity = "longjump")
+        {
+            var tickets = steamLibraryTickets ?? throw new InvalidOperationException(
+                "LongJump has no support for this game's Steam library (it supports Steamworks.NET and Facepunch.Steamworks). " +
+                "Pass a function that gets a Steam ticket: Session.SignInWithSteamAsync(ticketProvider). See the LongJump README.");
+            return await SignInWithSteamAsync(() => tickets(identity));
+        }
+
+        /// <summary>
+        /// Signs in with one ticket the game already has. A ticket works once, so this session can't
+        /// renew: when it runs out or the server refuses it, <see cref="Expired"/> is raised. Prefer a
+        /// form that can get fresh tickets.
+        /// </summary>
+        /// <exception cref="ApiException">The server refused the sign-in; see its ErrorCode and ErrorContent.</exception>
+        public static async Task<Player> SignInWithSteamAsync(SteamTicket ticket)
+        {
+            if (ticket == null) throw new ArgumentNullException(nameof(ticket));
+            Setup.RequireInitialized();
+            return await SignInAsync(() => Task.FromResult(ticket), StartNewSession(), renewable: false);
+        }
 
         /// <summary>Signs in, and signs in again with a fresh ticket whenever the session needs renewing.</summary>
         /// <param name="ticketProvider">Gets a fresh ticket from SteamUser.GetAuthTicketForWebApi.</param>
@@ -161,7 +194,7 @@ namespace LongJump
                 throw new InvalidOperationException("Sign-in returned no token. In an IL2CPP build, check Managed Stripping Level (see the LongJump README).");
         }
 
-        static async Task<Player> SignInAsync(Func<Task<SteamTicket>> provider, int started)
+        static async Task<Player> SignInAsync(Func<Task<SteamTicket>> provider, int started, bool renewable = true)
         {
             PlaySession session;
             try
@@ -181,7 +214,7 @@ namespace LongJump
             }
 
             established = started;
-            ticketProvider = provider;
+            ticketProvider = renewable ? provider : null;
             renewalRefused = false;
             device = null;
             deviceLabel = null;
@@ -347,6 +380,19 @@ namespace LongJump
             }
             return await request ?? throw new InvalidOperationException("The ticket provider returned no ticket.");
         }
+
+        /// <summary>
+        /// An adapter for a Steam library (Runtime/SteamworksNet, Runtime/Facepunch) registers how it gets
+        /// a ticket for an identity. The last one registered is used.
+        /// </summary>
+        internal static void UseSteamLibrary(string name, Func<string, Task<SteamTicket>> tickets)
+        {
+            steamLibrary = name;
+            steamLibraryTickets = tickets;
+        }
+
+        /// <summary>The Steam library the GDK gets tickets from, or null.</summary>
+        internal static string SteamLibrary => steamLibrary;
 
         static Func<Task<SteamTicket>> FromCallback(Action<Action<SteamTicket>> provider) => () =>
         {

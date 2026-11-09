@@ -14,29 +14,44 @@ if (report.Error != null) Debug.LogWarning(report.Error.Message);
 
 ## Setup and sign-in
 
-Call `Setup.Initialize` once when the game starts, with the GameEnvironment id from the LongJump admin, then sign in when Steam is ready. Give sign-in a ticket provider (a function that gets a fresh ticket from `SteamUser.GetAuthTicketForWebApi`), and the GDK signs in again by itself before the two-day token expires, or when the server refuses it:
+Call `Setup.Initialize` once when the game starts, with the GameEnvironment id from the LongJump admin, then sign in when Steam is ready. The GDK gets Steam tickets through the game's Steam library, and signs in again by itself before the two-day token expires, or when the server refuses it:
 
 ```csharp
 using LongJump;
 
 Setup.Initialize(new Guid("428b32bc-d75a-4232-bbe7-cb8445c8bd25"));
 
-// With Steamworks.NET: ask Steam for a ticket, and reply when its callback arrives.
 try
 {
-    var player = await Session.SignInWithSteamAsync(reply =>
-    {
-        pendingTicketReply = reply;   // your GetTicketForWebApiResponse_t callback calls
-        SteamUser.GetAuthTicketForWebApi("longjump");
-    });
+    var player = await Session.SignInWithSteamAsync();
 }
 catch (Exception e) { Debug.LogWarning(e.Message); }
-
-// In your Callback<GetTicketForWebApiResponse_t> handler:
-pendingTicketReply(SteamTicket.FromBytes("longjump", response.m_rgubTicket, response.m_cubTicket));
 ```
 
-`Session.SignInWithSteamAsync(Func<Task<SteamTicket>>)` takes a provider that returns a `Task` instead. Sign-in returns the player, and `Session.Player` and `Session.IsSignedIn` stay current. When a session ends and can't be renewed, `Session.Expired` is raised: sign in again. `Setup.Initialize(id, "http://localhost:3000")` points at a local server.
+That works with Steamworks.NET (20.2.0 and newer, which Heathen's Steamworks toolkit also uses) and Facepunch.Steamworks. The GDK's editor code finds the library whenever scripts reload and turns on its support, logging a line that starts with `[LongJump]`:
+
+- **Installed as a package:** nothing is needed. Removing the package turns the support off.
+- **Copied into the project, or as DLLs:** the GDK adds `LONGJUMP_STEAMWORKS_NET` or `LONGJUMP_FACEPUNCH` to Player Settings > Scripting Define Symbols (Standalone), and removes it when you delete the library in the editor. If you remove the library while the editor is closed, remove the define yourself.
+- **Steamworks.NET copied in without its `.asmdef` file** compiles into your own scripts, where the GDK can't reach it: keep the `.asmdef`, or install Steamworks.NET as a package.
+
+Your game still starts Steam itself (`SteamAPI.Init` or `SteamClient.Init`), and decides when to sign in. Signing in before Steam has started fails with a message saying so. `SignInWithSteamAsync("my-identity")` uses a ticket identity of your own (5 to 30 characters); the default is `longjump`.
+
+With any other Steam library, give sign-in a ticket provider: a function that gets a fresh ticket from `GetAuthTicketForWebApi`. The GDK calls it at sign-in and at each renewal:
+
+```csharp
+var player = await Session.SignInWithSteamAsync(reply =>
+{
+    pendingTicketReply = reply;   // your Steam library's ticket callback calls
+    RequestWebApiTicket("longjump");
+});
+
+// When Steam answers:
+pendingTicketReply(SteamTicket.FromBytes("longjump", ticketBytes, ticketLength));
+```
+
+`Session.SignInWithSteamAsync(Func<Task<SteamTicket>>)` takes a provider that returns a `Task` instead. `Session.SignInWithSteamAsync(ticket)` signs in with one ticket you already have, but a ticket works only once, so that session can't renew: when it runs out, `Session.Expired` is raised.
+
+Sign-in returns the player, and `Session.Player` and `Session.IsSignedIn` stay current. When a session ends and can't be renewed, `Session.Expired` is raised: sign in again. `Setup.Initialize(id, "http://localhost:3000")` points at a local server.
 
 ### Without a player: device sessions
 

@@ -15,7 +15,7 @@ namespace LongJump
     /// </remarks>
     public static class Setup
     {
-        public const string Version = "0.7.1";
+        public const string Version = "0.8.0";
         internal const string ProductionUrl = "https://app.longjump.dev";
 
         public static Guid GameEnvironmentId { get; private set; }

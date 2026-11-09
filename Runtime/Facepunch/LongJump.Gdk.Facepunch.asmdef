@@ -1,0 +1,24 @@
+{
+    "name": "LongJump.Gdk.Facepunch",
+    "rootNamespace": "LongJump",
+    "references": [
+        "LongJump.Gdk"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "LinuxStandalone64",
+        "macOSStandalone",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "LONGJUMP_FACEPUNCH"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
